@@ -1038,10 +1038,13 @@ static int cwa_verify_internal_auth(sc_card_t * card,
  * @param card card info structure
  * @param provider cwa14890 info provider
  * @param flag requested init method ( OFF, COLD, WARM )
+ * 
+ * @param makepinchannel if True (1) we are making a pin channel
+ * 
  * @return SC_SUCCESS if OK; else error code
  */
 int cwa_create_secure_channel(sc_card_t * card,
-			      cwa_provider_t * provider, int flag)
+			      cwa_provider_t * provider, int flag, int makepinchannel)
 {
 	u8 *cert;
 	size_t certlen;
@@ -1065,7 +1068,9 @@ int cwa_create_secure_channel(sc_card_t * card,
 	u8 *tlv = NULL;		/* buffer to compose TLV messages */
 	size_t tlvlen = 0;
 	u8 *rndbuf=NULL;
-
+        
+        sc_log(ctx, "In cwa_create_secure_channel, makepinchannel is %d",makepinchannel);
+        
 	/* preliminary checks */
 	if (!card || !card->ctx )
 		return SC_ERROR_INVALID_ARGUMENTS;
@@ -1100,8 +1105,8 @@ int cwa_create_secure_channel(sc_card_t * card,
 	/* OK: lets start process */
 
 	/* reset card (warm reset, do not unpower card) */
-	sc_log(ctx, "Resseting card");
-	sc_reset(card, 0);
+        /*sc_log(ctx, "Resseting card");
+	sc_reset(card, 0);*/
 
 	/* mark SM status as in progress */
 	provider->status.session.state = CWA_SM_INPROGRESS;
@@ -1255,7 +1260,7 @@ int cwa_create_secure_channel(sc_card_t * card,
 	/* Send IFD certiticate in CVC format C_CV_IFD */
 	sc_log(ctx,
 	       "Step 8.4.1.5: Send CVC IFD Certificate for ICC verification");
-	res = provider->cwa_get_cvc_ifd_cert(card, &cert, &certlen);
+	res = provider->cwa_get_cvc_ifd_cert(card, &cert, &certlen,makepinchannel);
 	if (res != SC_SUCCESS) {
 		msg = "Get CVC IFD cert from provider failed";
 		goto csc_end;
@@ -1271,7 +1276,7 @@ int cwa_create_secure_channel(sc_card_t * card,
 	/* select public key of ifd certificate and icc private key */
 	sc_log(ctx,
 	       "Step 8.4.1.9: Send IFD pubk and ICC privk key references for Internal Auth");
-	res = provider->cwa_get_ifd_pubkey_ref(card, &buffer, &bufferlen);
+	res = provider->cwa_get_ifd_pubkey_ref(card, &buffer, &bufferlen,makepinchannel);
 	if (res != SC_SUCCESS) {
 		msg = "Cannot get ifd public key reference from provider";
 		goto csc_end;
@@ -1310,7 +1315,7 @@ int cwa_create_secure_channel(sc_card_t * card,
 	/* Internal (Card) authentication (let the card verify sent ifd certs) 
 	   SN.IFD equals 8 lsb bytes of ifd.pubk ref according cwa14890 sec 8.4.1 */
 	sc_log(ctx, "Step 8.4.1.10: Perform Internal authentication");
-	res = provider->cwa_get_sn_ifd(card, &buffer);
+	res = provider->cwa_get_sn_ifd(card, &buffer,makepinchannel);
 	if (res != SC_SUCCESS) {
 		msg = "Cannot get ifd serial number from provider";
 		goto csc_end;
@@ -1331,7 +1336,7 @@ int cwa_create_secure_channel(sc_card_t * card,
 	}
 
 	/* retrieve ifd private key from provider */
-	res = provider->cwa_get_ifd_privkey(card, &ifd_privkey);
+	res = provider->cwa_get_ifd_privkey(card, &ifd_privkey,makepinchannel);
 	if (res != SC_SUCCESS) {
 		msg = "Cannot retrieve IFD private key from provider";
 		res = SC_ERROR_SM_NO_SESSION_KEYS;
@@ -1397,6 +1402,10 @@ int cwa_create_secure_channel(sc_card_t * card,
 	/* arriving here means ok: cleanup */
 	res = SC_SUCCESS;
  csc_end:
+        if (icc_cert)
+		X509_free(icc_cert);
+	if (ca_cert)
+		X509_free(ca_cert);
 	if (icc_pubkey)
 		EVP_PKEY_free(icc_pubkey);
 	if (ifd_privkey)
@@ -1587,7 +1596,7 @@ int cwa_encode_apdu(sc_card_t * card,
 			 &k1, &k2, DES_ENCRYPT);
 
 	/* compose and add computed MAC TLV to result buffer */
-	res = cwa_compose_tlv(card, 0x8E, 4, macbuf, &apdubuf, &apdulen);
+	res = cwa_compose_tlv(card, 0x8E, 8, macbuf, &apdubuf, &apdulen);
 	if (res != SC_SUCCESS) {
 		msg = "Encode APDU compose_tlv(0x87) failed";
 		goto encode_end;
@@ -1738,7 +1747,7 @@ int cwa_decode_response(sc_card_t * card,
 		res = SC_ERROR_INVALID_DATA;
 		goto response_decode_end;
 	}
-	if (m_tlv->len != 4) {
+	if (m_tlv->len != 8) {
 		msg = "Invalid MAC TAG Length";
 		res = SC_ERROR_INVALID_DATA;
 		goto response_decode_end;
@@ -1800,7 +1809,7 @@ int cwa_decode_response(sc_card_t * card,
 		DES_ecb_encrypt((const_DES_cblock *) macbuf,
 				(DES_cblock *) macbuf, &k1, DES_ENCRYPT);
 		/* XOR with data and repeat */
-		for (j = 0; j < 8; j++)
+		for (j = 0; j < 8; j++)   //// TODO ???? 16???
 			macbuf[j] ^= ccbuf[i + j];
 	}
 	/* finally apply 3DES to result */

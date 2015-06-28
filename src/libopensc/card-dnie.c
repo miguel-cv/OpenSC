@@ -293,7 +293,7 @@ data_found:
 static int dnie_get_info(sc_card_t * card, char *data[])
 {
 	sc_file_t *file = NULL;
-        sc_path_t *path = NULL;
+        sc_path_t path;
         u8 *buffer = NULL;
 	size_t bufferlen = 0;
 	char *msg = NULL;
@@ -309,14 +309,8 @@ static int dnie_get_info(sc_card_t * card, char *data[])
 	/* phase 1: get DNIe number, Name and GivenName */
 
 	/* read EF(CDF) at 3F0050156004 */
-	path = (sc_path_t *) calloc(1, sizeof(sc_path_t));
-	if (!path) {
-		msg = "Cannot allocate path data for EF(CDF) read";
-		res = SC_ERROR_OUT_OF_MEMORY;
-		goto get_info_end;
-	}
-	sc_format_path("3F0050156004", path);
-	res = dnie_read_file(card, path, &file, &buffer, &bufferlen);
+	sc_format_path("3F0050156004", &path);
+	res = dnie_read_file(card, &path, &file, &buffer, &bufferlen);
 	if (res != SC_SUCCESS) {
 		msg = "Cannot read EF(CDF)";
 		goto get_info_end;
@@ -334,7 +328,7 @@ static int dnie_get_info(sc_card_t * card, char *data[])
         }
 
 	/* phase 2: get IDESP */
-	sc_format_path("3F000006", path);
+	sc_format_path("3F000006", &path);
 	if (file) {
 		sc_file_free(file);
 		file = NULL;
@@ -344,7 +338,7 @@ static int dnie_get_info(sc_card_t * card, char *data[])
 		buffer=NULL; 
 		bufferlen=0;
 	}
-	res = dnie_read_file(card, path, &file, &buffer, &bufferlen);
+	res = dnie_read_file(card, &path, &file, &buffer, &bufferlen);
 	if (res != SC_SUCCESS) {
 		data[3]=NULL;
 		goto get_info_ph3;
@@ -359,7 +353,7 @@ static int dnie_get_info(sc_card_t * card, char *data[])
 
 get_info_ph3:
 	/* phase 3: get DNIe software version */
-	sc_format_path("3F002F03", path);
+	sc_format_path("3F002F03", &path);
 	if (file) {
 		sc_file_free(file);
 		file = NULL;
@@ -373,7 +367,7 @@ get_info_ph3:
 	* Some old DNIe cards seems not to include SW version file,
  	* so let this code fail without notice
  	*/
-	res = dnie_read_file(card, path, &file, &buffer, &bufferlen);
+	res = dnie_read_file(card, &path, &file, &buffer, &bufferlen);
 	if (res != SC_SUCCESS) {
 		msg = "Cannot read DNIe Version EF";
 		data[4]=NULL;
@@ -395,11 +389,13 @@ get_info_ph3:
 get_info_end:
 	if (file) {
 		sc_file_free(file);
-		free(buffer);
 		file = NULL;
+	}
+	if (buffer) {
+            free(buffer);
 		buffer = NULL;
 		bufferlen = 0;
-	}
+        }
 	if (msg)
 		sc_log(card->ctx,msg);
         LOG_FUNC_RETURN(card->ctx, res);
@@ -566,7 +562,7 @@ static int dnie_init(struct sc_card *card)
 	init_flags(card);
 
 #ifdef ENABLE_SM
-	res=cwa_create_secure_channel(card,provider,CWA_SM_OFF);
+	res=cwa_create_secure_channel(card,provider,CWA_SM_OFF,0);
 	LOG_TEST_RET(card->ctx, res, "Failure creating CWA secure channel.");
 #endif
 
@@ -605,7 +601,7 @@ static int dnie_finish(struct sc_card *card)
 	dnie_clear_cache(GET_DNIE_PRIV_DATA(card));
 #ifdef ENABLE_SM
 	/* disable sm channel if established */
-	result = cwa_create_secure_channel(card, GET_DNIE_PRIV_DATA(card)->cwa_provider, CWA_SM_OFF);
+	result = cwa_create_secure_channel(card, GET_DNIE_PRIV_DATA(card)->cwa_provider, CWA_SM_OFF,0);
 #endif
 	if (card->drv_data != NULL)
 		free(card->drv_data);
@@ -905,6 +901,8 @@ static int dnie_compose_and_send_apdu(sc_card_t *card, const u8 *path, size_t pa
 	if (file == NULL)
 		LOG_FUNC_RETURN(ctx, SC_ERROR_OUT_OF_MEMORY);
 	res = card->ops->process_fci(card, file, apdu.resp + 2, apdu.resp[1]);
+        if (*file_out != NULL)
+            sc_file_free(*file_out);
 	*file_out = file;
 	LOG_FUNC_RETURN(ctx, res);
 }
@@ -1113,7 +1111,7 @@ static int dnie_logout(struct sc_card *card)
 #ifdef ENABLE_SM
 	/* disable and free any sm channel related data */
 	result =
-	    cwa_create_secure_channel(card, GET_DNIE_PRIV_DATA(card)->cwa_provider, CWA_SM_OFF);
+	    cwa_create_secure_channel(card, GET_DNIE_PRIV_DATA(card)->cwa_provider, CWA_SM_OFF,0);
 #endif
 	/* TODO: _logout() see comments.txt on what to do here */
 	LOG_FUNC_RETURN(card->ctx, result);
@@ -1862,7 +1860,7 @@ static int dnie_pin_change(struct sc_card *card, struct sc_pin_cmd_data * data)
 	LOG_FUNC_CALLED(card->ctx);
 #ifdef ENABLE_SM
     /* Ensure that secure channel is established from reset */
-    res = cwa_create_secure_channel(card, GET_DNIE_PRIV_DATA(card)->cwa_provider, CWA_SM_COLD);
+    res = cwa_create_secure_channel(card, GET_DNIE_PRIV_DATA(card)->cwa_provider, CWA_SM_COLD,0);
     LOG_TEST_RET(card->ctx, res, "Establish SM failed");
 #endif
 	LOG_FUNC_RETURN(card->ctx,SC_ERROR_NOT_SUPPORTED);
@@ -1888,12 +1886,30 @@ static int dnie_pin_verify(struct sc_card *card,
 	u8 pinbuffer[SC_MAX_APDU_BUFFER_SIZE];
 	int pinlen = 0;
 	int padding = 0;
+        int pinchannel = 0;
 
 	LOG_FUNC_CALLED(card->ctx);
+        
+        // DNIE 3.0
+        
+        if (card->atr.value[15] >= 0x04) {
+        
+        // Si es un dnie 3.0 tenemos que establecer antes "canal pin"
+        // Le pasamos 1 como último parámetro a cwa_create_secure_channel
+            sc_log(card->ctx, "En dnie_pin_verify, comenzando a establecer el pin channel");
+            pinchannel = 1;
+            res = cwa_create_secure_channel(card, GET_DNIE_PRIV_DATA(card)->cwa_provider, CWA_SM_COLD, pinchannel);
+	LOG_TEST_RET(card->ctx, res, "Failed making secure pin channel");
+        sc_log(card->ctx, "************Pin channel established**************");    
+            
+        }
+        
+        if (!pinchannel) {
 	/* ensure that secure channel is established from reset */
-	res = cwa_create_secure_channel(card, GET_DNIE_PRIV_DATA(card)->cwa_provider, CWA_SM_COLD);
+	res = cwa_create_secure_channel(card, GET_DNIE_PRIV_DATA(card)->cwa_provider, CWA_SM_COLD,0);
 	LOG_TEST_RET(card->ctx, res, "Establish SM failed");
-
+        sc_log(card->ctx, "************secure channel establecido**************");
+        }
 	data->apdu = &apdu;	/* prepare apdu struct */
 	/* compose pin data to be inserted in apdu */
 	if (data->flags & SC_PIN_CMD_NEED_PADDING)
@@ -1916,7 +1932,7 @@ static int dnie_pin_verify(struct sc_card *card,
 	apdu.data = pinbuffer;
 	apdu.resplen = 0;
 	apdu.le = 0;
-
+        sc_log(card->ctx, "************enviando apdu**************");
 	/* and send to card throught virtual channel */
 	res = dnie_transmit_apdu(card, &apdu);
 	LOG_TEST_RET(card->ctx, res, "VERIFY APDU Transmit fail");
@@ -1929,10 +1945,14 @@ static int dnie_pin_verify(struct sc_card *card,
 		}
 	}
 	res = dnie_check_sw(card, apdu.sw1, apdu.sw2);	/* not a pinerr: parse result */
-
 	/* the end: a bit of Mister Proper and return */
 	memset(&apdu, 0, sizeof(apdu));	/* clear buffer */
 	data->apdu = NULL;
+        if (pinchannel) {
+            res = cwa_create_secure_channel(card, GET_DNIE_PRIV_DATA(card)->cwa_provider, CWA_SM_COLD,0);
+	LOG_TEST_RET(card->ctx, res, "Establish SM failed");
+        sc_log(card->ctx, "************secure channel establecido**************");
+        }
 	LOG_FUNC_RETURN(card->ctx, res);
 #else
     LOG_TEST_RET(card->ctx, SC_ERROR_NOT_SUPPORTED, "built without support of SM and External Authentication");

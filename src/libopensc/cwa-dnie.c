@@ -42,6 +42,8 @@
 #include <openssl/x509.h>
 #include <openssl/evp.h>
 
+#define MAX_RESP_BUFFER_SIZE 2048
+
 /********************* Keys and certificates as published by DGP ********/
 
 /**
@@ -191,6 +193,79 @@ static u8 sn_ifd[] = { 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
  */
 static u8 sn_icc[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
+/****************************/
+/* Pin channel for DNIe 3.0 */
+/****************************/
+
+/* pin-pk-RCAicc[] = icc_root_ca_modulus */
+
+/* exponent e => 0x010001 = ifd_public_exponent[] */
+
+//static u8 pin-pk-RCA-AUT-keyRef[] = { 0x83,0x02,0x02,0x0f } /* ¿ = root_ca_keyref ? */ 
+
+/* static u8 pin-c-CV-CA-CS-AUT [] = C_CV_CA_CS_AUT_cert  */
+
+/* static u8 pin-pk-CA-CS-AUT-keyRef [] = cvc_intca_keyref ¿ 8308 al principio? */
+
+static u8 pin_c_CV_IFD_AUT[] = { 
+        0x7f,0x21,0x81,0xcd,0x5f,0x37,0x81,0x80,0x69,0xc4,0xe4,0x94,
+        0xf0,0x08,0xe2,0x42,0x14,0xb1,0xc1,0x31,0xb6,0x1f,0xce,0x9c,
+        0x15,0xfa,0x3c,0xb0,0x61,0xdd,0x6f,0x02,0xd8,0xa2,0xcd,0x30,
+        0xd7,0x2f,0xb6,0xdf,0x89,0x9a,0xf1,0x5b,0x71,0x78,0x21,0xbf,
+        0xb1,0xaf,0x7d,0x75,0x85,0x01,0x6d,0x8c,0x36,0xaf,0x4a,0xc2,
+        0xa0,0xb0,0xc5,0x2a,0xd6,0x5b,0x69,0x25,0x67,0x31,0xc3,0x4d,
+        0x59,0x02,0x0e,0x87,0xab,0x73,0xa2,0x30,0xfa,0x69,0xee,0x82,
+        0xb3,0x3a,0x31,0xdf,0x04,0x0c,0xe9,0x0f,0x0a,0xfc,0x3a,0x11,
+        0x1d,0x35,0xda,0x95,0x66,0xa8,0xcd,0xab,0xea,0x0e,0x3f,0x75,
+        0x94,0xc4,0x40,0xd3,0x74,0x50,0x7a,0x94,0x35,0x57,0x59,0xb3,
+        0x9e,0xc5,0xe5,0xfc,0xb8,0x03,0x8d,0x79,0x3d,0x5f,0x9b,0xa8,
+        0xb5,0xb1,0x0b,0x70,0x5f,0x38,0x3c,0x4c,0x86,0x91,0xc7,0xbe,
+        0x2f,0xd8,0xc1,0x23,0x66,0x0e,0x98,0x65,0xe1,0x4f,0x19,0xdf,
+        0xfb,0xb7,0xff,0x38,0x08,0xc9,0xf2,0x04,0xe7,0x97,0xd0,0x6d,
+        0xd8,0x33,0x3a,0xc5,0x83,0x86,0xee,0x4e,0xb6,0x1e,0x20,0xec,
+        0xa7,0xef,0x38,0xd5,0xb0,0x5e,0xb1,0x15,0x96,0x6a,0x5a,0x89,
+        0xad,0x58,0xa5,0x00,0x01,0x00,0x01,0x42,0x08,0x65,0x73,0x53,
+        0x44,0x49,0x60,0x00,0x06 };
+
+/* static u8 pin-ifd-keyRef [] =  cvc_intca_keyref */ 
+
+static u8 pin_sn_IFD[] = { 0x40,0x00,0x00,0x00,0x00,0x00,0x00,0x01 };
+
+static u8 pin_pk_IFD_AUT_keyRef[] = { 
+        /*0x83,0x0C,*/ 0x00,0x00,0x00,0x00,0x40,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x01 };
+
+/* static u8 pin-sk-ICC-AUT-keyRef [] = { hex2os( '8402021F' ) } ¿ = icc_priv_keyref ? */
+
+static u8 pin_sk_FD_AUT_n[] = { //ifd_modulus
+        0xF4,0x27,0x97,0x8D,0xA1,0x59,0xBA,0x02,0x79,0x30,0x8A,0x6C,
+        0x6A,0x89,0x50,0x5A,0xDA,0x5A,0x67,0xC3,0xDA,0x26,0x79,0xEA,0xF4,0xA1,0xB0,0x11,0x9E,0xDD,0x4D,0xF4,0x6E,0x78,0x04,0x24,
+        0x71,0xA9,0xD1,0x30,0x1D,0x3F,0xB2,0x8F,0x38,0xC5,0x7D,0x08,
+        0x89,0xF7,0x31,0xDB,0x8E,0xDD,0xBC,0x13,0x67,0xC1,0x34,0xE1,
+        0xE9,0x47,0x78,0x6B,0x8E,0xC8,0xE4,0xB9,0xCA,0x6A,0xA7,0xC2,
+        0x4C,0x86,0x91,0xC7,0xBE,0x2F,0xD8,0xC1,0x23,0x66,0x0E,0x98,
+        0x65,0xE1,0x4F,0x19,0xDF,0xFB,0xB7,0xFF,0x38,0x08,0xC9,0xF2,
+        0x04,0xE7,0x97,0xD0,0x6D,0xD8,0x33,0x3A,0xC5,0x83,0x86,0xEE,
+        0x4E,0xB6,0x1E,0x20,0xEC,0xA7,0xEF,0x38,0xD5,0xB0,0x5E,0xB1,
+        0x15,0x96,0x6A,0x5A,0x89,0xAD,0x58,0xA5 };
+
+/* exponent :  e => 0x010001, ¿ifd_public_exponent ?
+ * d => */
+static u8 pin_sk_IFD_AUT_d[] = { // ¿ifd_private_exponent? 
+        0xD2,0x7A,0x03,0x23,0x7C,0x72,0x2E,0x71,0x8D,0x69,0xF4,0x1A,
+        0xEC,0x68,0xBD,0x95,0xE4,0xE0,0xC4,0xCD,0x49,0x15,0x9C,0x4A,
+        0x99,0x63,0x7D,0xB6,0x62,0xFE,0xA3,0x02,0x51,0xED,0x32,0x9C,
+        0xFC,0x43,0x89,0xEB,0x71,0x7B,0x85,0x02,0x04,0xCD,0xF3,0x30,
+        0xD6,0x46,0xFC,0x7B,0x2B,0x19,0x29,0xD6,0x8C,0xBE,0x39,0x49,
+        0x7B,0x62,0x3A,0x82,0xC7,0x64,0x1A,0xC3,0x48,0x79,0x57,0x3D,
+        0xEA,0x0D,0xAB,0xC7,0xCA,0x30,0x9A,0xE4,0xB3,0xED,0xDA,0xFA,
+        0xEE,0x55,0xD5,0x42,0xF7,0x80,0x23,0x03,0x51,0xE7,0x5E,0x7F,
+        0x32,0xDC,0x65,0x2E,0xF1,0xED,0x47,0xA5,0x1C,0x18,0xD9,0xDF,
+        0x9F,0xF4,0x8D,0x87,0x8D,0xB6,0x22,0xEA,0x6E,0x93,0x70,0xE9,
+        0xC6,0x3B,0x35,0x8B,0x7C,0x11,0x5A,0xA1 };
+
+
+
 /************ internal functions **********************************/
 
 /**
@@ -209,7 +284,7 @@ int dnie_read_file(sc_card_t * card,
 		   const sc_path_t * path,
 		   sc_file_t ** file, u8 ** buffer, size_t * length)
 {
-	u8 *data;
+	u8 *data = NULL;
 	char *msg = NULL;
 	int res = SC_SUCCESS;
 	size_t fsize = 0;	/* file size */
@@ -265,6 +340,8 @@ int dnie_read_file(sc_card_t * card,
 	res = SC_SUCCESS;
 	goto dnie_read_file_end;
  dnie_read_file_err:
+        if (data)
+                free(data);
 	if (*file) {
 		sc_file_free(*file);
 		*file = NULL;
@@ -289,39 +366,38 @@ int dnie_read_file(sc_card_t * card,
 static int dnie_read_certificate(sc_card_t * card, char *certpath, X509 ** cert)
 {
 	sc_file_t *file = NULL;
-	sc_path_t *path = NULL;
-	u8 *buffer = NULL;
+	sc_path_t path;
+	u8 *buffer = NULL, *buffer2 = NULL;
 	char *msg = NULL;
 	size_t bufferlen = 0;
 	int res = SC_SUCCESS;
 
 	LOG_FUNC_CALLED(card->ctx);
-	path = (sc_path_t *) calloc(1, sizeof(sc_path_t));
-	if (!path) {
-		msg = "Cannot allocate path data for cert read";
-		res = SC_ERROR_OUT_OF_MEMORY;
-		goto read_cert_end;
-	}
-	sc_format_path(certpath, path);
-	res = dnie_read_file(card, path, &file, &buffer, &bufferlen);
+	
+	sc_format_path(certpath, &path);
+	res = dnie_read_file(card, &path, &file, &buffer, &bufferlen);
 	if (res != SC_SUCCESS) {
 		msg = "Cannot get intermediate CA cert";
 		goto read_cert_end;
 	}
-	*cert = d2i_X509(NULL, (const unsigned char **)&buffer, bufferlen);
+	buffer2=buffer;
+	*cert = d2i_X509(NULL, (const unsigned char **)&buffer2, bufferlen);
 	if (*cert == NULL) {	/* received data is not a certificate */
 		res = SC_ERROR_OBJECT_NOT_VALID;
-		msg = "Readed data is not a certificate";
+		msg = "Read data is not a certificate";
 		goto read_cert_end;
 	}
 	res = SC_SUCCESS;
 
  read_cert_end:
+        if (buffer) {
+            free(buffer);
+            buffer=NULL;
+            bufferlen=0;
+        }
 	if (file) {
 		sc_file_free(file);
 		file = NULL;
-		buffer = NULL;
-		bufferlen = 0;
 	}
 	if (msg)
 		sc_log(card->ctx, msg);
@@ -400,13 +476,21 @@ static int dnie_get_cvc_ca_cert(sc_card_t * card, u8 ** cert, size_t * length)
  * @param card Pointer to card driver Certificate
  * @param cert Where to store resulting byte array
  * @param length len of returned byte array
+ * @param makepinchannel if 1 we are in "pin channel"
  * @return SC_SUCCESS if ok; else error code
  */
-static int dnie_get_cvc_ifd_cert(sc_card_t * card, u8 ** cert, size_t * length)
+static int dnie_get_cvc_ifd_cert(sc_card_t * card, u8 ** cert, size_t * length, int makepinchannel)
 {
 	LOG_FUNC_CALLED(card->ctx);
+        if (makepinchannel) {
+        sc_log(card->ctx, "En dnie_get_cvc_ifd_cert,en pinchannel");
+        *cert = pin_c_CV_IFD_AUT;
+	*length = sizeof(pin_c_CV_IFD_AUT);    
+        }
+        else {
 	*cert = C_CV_IFDUser_AUT_cert;
 	*length = sizeof(C_CV_IFDUser_AUT_cert);
+        }
 	LOG_FUNC_RETURN(card->ctx, SC_SUCCESS);
 }
 
@@ -421,9 +505,10 @@ static int dnie_get_cvc_ifd_cert(sc_card_t * card, u8 ** cert, size_t * length)
  *
  * @param card pointer to card driver structure
  * @param ifd_privkey where to store IFD private key
+ * @param makepinchannel if 1 we are in "pin channel"
  * @return SC_SUCCESS if ok; else error code
  */
-static int dnie_get_ifd_privkey(sc_card_t * card, EVP_PKEY ** ifd_privkey)
+static int dnie_get_ifd_privkey(sc_card_t * card, EVP_PKEY ** ifd_privkey,int makepinchannel)
 {
 	RSA *ifd_rsa=NULL;
 	int res=SC_SUCCESS;
@@ -437,6 +522,19 @@ static int dnie_get_ifd_privkey(sc_card_t * card, EVP_PKEY ** ifd_privkey)
 		sc_log(card->ctx, "Cannot create data for IFD private key");
 		return SC_ERROR_OUT_OF_MEMORY;
 	}
+	if (makepinchannel)
+        {
+            sc_log(card->ctx, "En dnie_get_ifd_privkey,en pinchannel");
+         ifd_rsa->n = BN_bin2bn(pin_sk_FD_AUT_n, sizeof(pin_sk_FD_AUT_n), ifd_rsa->n);
+	ifd_rsa->e =
+	    BN_bin2bn(ifd_public_exponent, sizeof(ifd_public_exponent),
+		      ifd_rsa->e);
+	ifd_rsa->d =
+	    BN_bin2bn(pin_sk_IFD_AUT_d, sizeof(pin_sk_IFD_AUT_d),
+		      ifd_rsa->d);   
+        }
+        else 
+        {
 	ifd_rsa->n = BN_bin2bn(ifd_modulus, sizeof(ifd_modulus), ifd_rsa->n);
 	ifd_rsa->e =
 	    BN_bin2bn(ifd_public_exponent, sizeof(ifd_public_exponent),
@@ -444,6 +542,7 @@ static int dnie_get_ifd_privkey(sc_card_t * card, EVP_PKEY ** ifd_privkey)
 	ifd_rsa->d =
 	    BN_bin2bn(ifd_private_exponent, sizeof(ifd_private_exponent),
 		      ifd_rsa->d);
+        }
 	res = EVP_PKEY_assign_RSA(*ifd_privkey, ifd_rsa);
 	if (!res) {
 		if (*ifd_privkey)
@@ -524,12 +623,21 @@ static int dnie_get_intermediate_ca_pubkey_ref(sc_card_t * card, u8 ** buf,
  * @param card pointer to card driver structure
  * @param buf where to store data to be sent
  * @param len where to store data length
+ * @param makepinchannel If 1 we are in "pin channel"
  * @return SC_SUCCESS if ok; else error code
  */
-static int dnie_get_ifd_pubkey_ref(sc_card_t * card, u8 ** buf, size_t * len)
+static int dnie_get_ifd_pubkey_ref(sc_card_t * card, u8 ** buf, size_t * len, int makepinchannel)
 {
+    if (makepinchannel) {
+        sc_log(card->ctx, "En dnie_get_ifd_pubkey_ref,en pinchannel");
+        *buf = pin_pk_IFD_AUT_keyRef;
+	*len = sizeof(pin_pk_IFD_AUT_keyRef);
+    }
+    else
+    {
 	*buf = cvc_ifd_keyref;
 	*len = sizeof(cvc_ifd_keyref);
+    }
 	return SC_SUCCESS;
 }
 
@@ -559,11 +667,19 @@ static int dnie_get_icc_privkey_ref(sc_card_t * card, u8 ** buf, size_t * len)
  *
  * @param card pointer to card structure
  * @param buf where to store result (8 bytes)
+ * @param makepinchannel If 1 we are in "pin channel"
  * @return SC_SUCCESS if ok; else error
  */
-static int dnie_get_sn_ifd(sc_card_t * card, u8 ** buf)
+static int dnie_get_sn_ifd(sc_card_t * card, u8 ** buf,int makepinchannel)
 {
-	*buf = sn_ifd;
+    if (makepinchannel) {
+        sc_log(card->ctx, "En dnie_get_sn_ifd,en pinchannel");
+        *buf = pin_sn_IFD;
+    }
+    else
+    {
+        *buf = sn_ifd;
+    }
 	return SC_SUCCESS;
 }
 
@@ -690,7 +806,7 @@ cwa_provider_t *dnie_get_cwa_provider(sc_card_t * card)
 
 static int dnie_transmit_apdu_internal(sc_card_t * card, sc_apdu_t * apdu)
 {
-	u8 buf[2048];		/* use for store partial le responses */
+	u8 buf[MAX_RESP_BUFFER_SIZE];		/* use for store partial le responses */
 	int res = SC_SUCCESS;
 	cwa_provider_t *provider = NULL;
 	if ((card == NULL) || (card->ctx == NULL) || (apdu == NULL))
@@ -711,8 +827,10 @@ static int dnie_transmit_apdu_internal(sc_card_t * card, sc_apdu_t * apdu)
 			if (tmp == SC_APDU_CASE_3_SHORT)
 				apdu->cse = SC_APDU_CASE_4_SHORT;
 			if (apdu->resplen == 0) {	/* no response buffer: create */
-				apdu->resp = buf;
-				apdu->resplen = 2048;
+                                apdu->resp = calloc(1, MAX_RESP_BUFFER_SIZE);
+				if (apdu->resp == NULL)
+					LOG_FUNC_RETURN(card->ctx, SC_ERROR_OUT_OF_MEMORY);
+				apdu->resplen = MAX_RESP_BUFFER_SIZE;
 				apdu->le = card->max_recv_size;
 			}
 		}
@@ -724,16 +842,11 @@ static int dnie_transmit_apdu_internal(sc_card_t * card, sc_apdu_t * apdu)
 
 		size_t e_txlen = 0;
 		size_t index = 0;
-		sc_apdu_t *e_apdu = NULL;
-		u8 *e_tx = NULL;
+		sc_apdu_t e_apdu;
+		u8 e_tx [2*SC_MAX_APDU_BUFFER_SIZE];
 
 		/* envelope needed */
 		sc_log(card->ctx, "envelope tx required: lc:%d", apdu->lc);
-
-		e_apdu = calloc(1, sizeof(sc_apdu_t));	/* enveloped apdu */
-		e_tx = calloc(7 + apdu->datalen, sizeof(u8));	/* enveloped data */
-		if (!e_apdu || !e_tx)
-			LOG_FUNC_RETURN(card->ctx, SC_ERROR_OUT_OF_MEMORY);
 
 		/* copy apdu info into enveloped data */
 		*(e_tx + 0) = apdu->cla;	/* apdu header */
@@ -753,36 +866,38 @@ static int dnie_transmit_apdu_internal(sc_card_t * card, sc_apdu_t * apdu)
 			       index, len);
 
 			/* compose envelope apdu command */
-			sc_format_apdu(card, e_apdu, apdu->cse, 0xC2, 0x00,
+			sc_format_apdu(card, &e_apdu, apdu->cse, 0xC2, 0x00,
 				       0x00);
-			e_apdu->cla = 0x90;	/* propietary CLA */
-			e_apdu->data = e_tx + index;
-			e_apdu->lc = len;
-			e_apdu->datalen = len;
-			e_apdu->le = apdu->le;
-			e_apdu->resp = apdu->resp;
-			e_apdu->resplen = apdu->resplen;
+			e_apdu.cla = 0x90;	/* propietary CLA */
+			e_apdu.data = e_tx + index;
+			e_apdu.lc = len;
+			e_apdu.datalen = len;
+			e_apdu.le = apdu->le;
+			e_apdu.resp = apdu->resp;
+			e_apdu.resplen = apdu->resplen;
 			/* if SM is ON, ensure resp exists, and force getResponse() */
 			if (provider->status.session.state == CWA_SM_ACTIVE) {
 				/* set up proper apdu type */
-				if (e_apdu->cse == SC_APDU_CASE_3_SHORT)
-					e_apdu->cse = SC_APDU_CASE_4_SHORT;
+				if (e_apdu.cse == SC_APDU_CASE_3_SHORT)
+					e_apdu.cse = SC_APDU_CASE_4_SHORT;
 				/* if no response buffer: create */
 				if (apdu->resplen == 0) {
-					e_apdu->resp = buf;
-					e_apdu->resplen = 2048;
-					e_apdu->le = card->max_recv_size;
+					e_apdu.resp = buf;
+					e_apdu.resplen = 2048;
+					e_apdu.le = card->max_recv_size;
 				}
 			}
 			/* send data chunk bypassing apdu wrapping */
-			res = sc_transmit_apdu(card, e_apdu);
+			res = sc_transmit_apdu(card, &e_apdu);
 			LOG_TEST_RET(card->ctx, res,
 				     "Error in envelope() send apdu");
 		}		/* for */
 		/* last apdu sent contains response to enveloped cmd */
-		apdu->resp = e_apdu->resp;
-		apdu->resplen = e_apdu->resplen;
-		res = SC_SUCCESS;
+		apdu->resp = calloc(1, MAX_RESP_BUFFER_SIZE);
+		if (apdu->resp == NULL)
+			LOG_FUNC_RETURN(card->ctx, SC_ERROR_OUT_OF_MEMORY);
+		memcpy(apdu->resp, e_apdu.resp, e_apdu.resplen);
+		apdu->resplen = e_apdu.resplen;
 	}
 	LOG_FUNC_RETURN(card->ctx, res);
 }
@@ -817,6 +932,7 @@ static int dnie_wrap_apdu(sc_card_t * card, sc_apdu_t * apdu)
 	sc_context_t *ctx;
 	cwa_provider_t *provider = NULL;
 	int retries = 3;
+        char * msg = NULL;
 
 	if ((card == NULL) || (card->ctx == NULL) || (apdu == NULL))
 		return SC_ERROR_INVALID_ARGUMENTS;
@@ -831,13 +947,18 @@ static int dnie_wrap_apdu(sc_card_t * card, sc_apdu_t * apdu)
 			wrapped.resp = NULL;
 			wrapped.resplen = 0;	/* let get_response() assign space */
 			res = cwa_encode_apdu(card, provider, apdu, &wrapped);
-			LOG_TEST_RET(ctx, res,
-				     "Error in cwa_encode_apdu process");
+			if (res != SC_SUCCESS) {
+				msg = "Error in cwa_encode_apdu process";
+				goto cleanup_and_return;
+			}
 		}
 		/* send apdu via envelope() cmd if needed */
 		res = dnie_transmit_apdu_internal(card, &wrapped);
 		/* check for tx errors */
-		LOG_TEST_RET(ctx, res, "Error in dnie_transmit_apdu process");
+		if (res != SC_SUCCESS) {
+			msg = "Error in dnie_transmit_apdu process";
+			goto cleanup_and_return;
+		}
 
 		/* parse response and handle SM related errors */
 		res=card->ops->check_sw(card,wrapped.sw1,wrapped.sw2);
@@ -851,9 +972,11 @@ static int dnie_wrap_apdu(sc_card_t * card, sc_apdu_t * apdu)
 					continue;
 				/* SM was active: force restart SM and retry */
 				case CWA_SM_ACTIVE:
-					res=cwa_create_secure_channel(card, provider, CWA_SM_COLD);
-					LOG_TEST_RET(ctx,res,"Cannot re-enable SM");
-					continue;
+					res=cwa_create_secure_channel(card, provider, CWA_SM_COLD,0);
+                                        if (res != SC_SUCCESS) {
+						msg = "Cannot re-enable SM";
+						goto cleanup_and_return;
+					}					continue;
 			}
 		}
 
@@ -862,15 +985,23 @@ static int dnie_wrap_apdu(sc_card_t * card, sc_apdu_t * apdu)
 			apdu->resp = NULL;
 			apdu->resplen = 0;	/* let cwa_decode_response() eval & create size */
 			res = cwa_decode_response(card, provider, &wrapped, apdu);
-			LOG_TEST_RET(ctx, res, "Error in cwa_decode_response process");
+			if (res != SC_SUCCESS)
+				msg = "Error in cwa_decode_response process";
+			goto cleanup_and_return;
 		} else {
+                        if (apdu->resp != wrapped.resp) free(apdu->resp);
 			/* memcopy result to original apdu */
 			memcpy(apdu, &wrapped, sizeof(sc_apdu_t));
+                        LOG_FUNC_RETURN(ctx, res);
 		}
-		LOG_FUNC_RETURN(ctx, res);
 	}
-	sc_log(ctx,"Too many retransmissions. Abort and return");
-	LOG_FUNC_RETURN(ctx, SC_ERROR_INTERNAL);
+	msg = "Too many retransmissions. Abort and return";
+	res = SC_ERROR_INTERNAL;
+cleanup_and_return:
+	if (apdu->resp != wrapped.resp) free(wrapped.resp);
+	if (msg)
+		sc_log(ctx, msg);
+	LOG_FUNC_RETURN(ctx, res);
 }
 
 int dnie_transmit_apdu(sc_card_t * card, sc_apdu_t * apdu)

@@ -155,9 +155,10 @@ typedef struct cwa_provider_st {
 	*
 	* @param card pointer to card driver structure
 	* @param ifd_privkey where to store IFD private key
+        * @param makepinchannel if 1 we are in "pin channel"
 	* @return SC_SUCCESS if ok; else error code
 	*/
-	int (*cwa_get_ifd_privkey) (sc_card_t * card, EVP_PKEY ** key);
+	int (*cwa_get_ifd_privkey) (sc_card_t * card, EVP_PKEY ** key,int makepinchannel);
 
 	/* TODO:
 	 * CVC handling routines should be grouped in just retrieve CVC
@@ -197,10 +198,11 @@ typedef struct cwa_provider_st {
 	* @param card Pointer to card driver Certificate
 	* @param cert Where to store resulting byte array
 	* @param length len of returned byte array
+        * @param makepinchannel if 1 we are in "pin channel"
 	* @return SC_SUCCESS if ok; else error code
 	*/
 	int (*cwa_get_cvc_ifd_cert) (sc_card_t * card, u8 ** cert,
-				     size_t * lenght);
+				     size_t * lenght, int makepinchannel);
 
 	/**
 	* Retrieve public key reference for Root CA to validate CVC intermediate CA certs.
@@ -236,10 +238,11 @@ typedef struct cwa_provider_st {
 	* @param card pointer to card driver structure
 	* @param buf where to store data to be sent
 	* @param len where to store data length
+        * @param makepinchannel if 1 we are in "pin channel"
 	* @return SC_SUCCESS if ok; else error code
 	*/
 	int (*cwa_get_ifd_pubkey_ref) (sc_card_t * card, u8 ** buf,
-				       size_t * len);
+				       size_t * len,int makepinchannel);
 
 	/**
 	* Retrieve key reference for ICC private key.
@@ -259,9 +262,10 @@ typedef struct cwa_provider_st {
 	*
 	* @param card pointer to card structure
 	* @param buf where to store result (8 bytes)
+        * @param makepinchannel if 1 we are in "pin channel"
 	* @return SC_SUCCESS if ok; else error
 	*/
-	int (*cwa_get_sn_ifd) (sc_card_t * card, u8 ** buf);
+	int (*cwa_get_sn_ifd) (sc_card_t * card, u8 ** buf, int makepinchannel);
 
 	/**
 	*  Get SN.ICC - Card Serial Number.
@@ -344,10 +348,13 @@ typedef struct cwa_provider_st {
  * @param card card info structure
  * @param provider pointer to cwa provider
  * @param flag Requested SM final state (OFF,COLD,WARM)
+ *  
+ * @param makepinchannel if True (1) we are making a pin channel
+ * 
  * @return SC_SUCCESS if OK; else error code
  */
 extern int cwa_create_secure_channel(sc_card_t * card,
-				     cwa_provider_t * provider, int flag);
+				     cwa_provider_t * provider, int flag, int makepinchannel);
 
 /**
  * Decode an APDU response.
